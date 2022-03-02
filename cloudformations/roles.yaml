@@ -49,6 +49,15 @@ Resources:
                   - s3:PutObject
                 Resource:
                   - '*'
+          - PolicyName: "Dynamo"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+              - Effect: "Allow"
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - '*'
         RoleName:
           Fn::Join: ["-", [Ref: AWS::StackName, "SSM", "Role"]]
   AuthorizerRole:
