@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: "Telerehab"
+
+Parameters:
+  Environment:
+    Type: String
+    Description: "Stage Environment Variable"
+  RetentionInDays:
+    Type: Number
+    Description: Retention in days cloudwatch logs
+    Default: 30
+  ProjectName:
+    Type: String
+    Description: "Base Project Name"
+  Region:
+    Type: String
+    Description: "Region"
+
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    MemorySize: 1024
+    Timeout: 30
+    Environment:
+      Variables:
+        NODE_ENV: !Ref Environment
+        ProjectName: !Ref ProjectName
+        SSM_BASE_URL:
+          !Sub '${Environment}/${ProjectName}/'
+
+Conditions:
+  IsProduction:
+    Fn::Equals: [Ref: Environment, production]
+  DefinedDomainName: !Not
+    - !Equals
+      - !FindInMap ["Stage", !Ref Environment, "DomainName"]
+      - ""
+  CreateDomainName: !Condition DefinedDomainName
+
+Mappings:
+  Stage:
+    develop:
+      LambdaAuth: "826381324270:function:telerehab-develop-LambdaAuthorizer"
+      DomainName: ""
+
+Resources:
+  ### Layers ###
+  UtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName:
+        !Sub ${AWS::StackName}-UtilsLayer
+      Description: "Util Libs"
+      ContentUri: ./layers/utils
+      LicenseInfo: Available under the MIT-0 license.
+      CompatibleRuntimes:
+        - nodejs14.x
+    Metadata:
+      BuildMethod: nodejs14.x
+  ServicesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName:
+        !Sub ${AWS::StackName}-ServicesLayer
+      Description: "Services Layer"
+      ContentUri: ./layers/services
+      LicenseInfo: Available under the MIT-0 license.
+      CompatibleRuntimes:
+        - nodejs14.x
+    Metadata:
+      BuildMethod: nodejs14.x
+
+  ### API Gateway ###
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName:
+        Ref: Environment
+      Name:
+        !Sub ${AWS::StackName}-api
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./swagger.yaml
+
+  BasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn: ServerlessRestApi
+    Condition: CreateDomainName
+    Properties:
+      DomainName:
+        Fn::FindInMap:
+          - "Stage"
+          - Ref: "Environment"
+          - "DomainName"
+      RestApiId:
+        Ref: ServerlessRestApi
+      Stage:
+        Ref: ServerlessRestApi.Stage
+
+  LambdaAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        !Sub ${ProjectName}-${Environment}-LambdaAuthorizer
+      Handler: index.Handler
+      CodeUri: ./functions/authorizer
+      Role:
+        Fn::ImportValue:
+          Fn::Sub: ${Environment}-AuthorizerRole
+      Layers:
+        - Ref: ServicesLayer
+        - Ref: UtilsLayer
+      Environment:
+        Variables:
+          BYPASS: true
+
+  LambdaAuthorizerLogs:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - LambdaAuthorizer
+    Properties:
+      LogGroupName:
+        !Sub /aws/lambda/${ProjectName}-${Environment}-LambdaAuthorizer
+      RetentionInDays:
+        Ref: RetentionInDays
+
+  ### API Functions ###
+  UserLogin:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        !Sub ${ProjectName}-${Environment}-UserLogin
+      Handler: index.Handler
+      CodeUri: ./functions/user/login
+      Role:
+        Fn::ImportValue:
+          Fn::Sub: ${Environment}-SSMRole
+      Layers:
+        - Ref: ServicesLayer
+        - Ref: UtilsLayer
+      Events:
+        Post:
+          Type: HttpApi
+          Properties:
+            Path: /user/login
+            Method: POST
+            ApiId:
+              Ref: ServerlessRestApi
+  UserLoginLogs:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - UserLogin
+    Properties:
+      LogGroupName:
+        !Sub /aws/lambda/${ProjectName}-${Environment}-UserLogin
+      RetentionInDays:
+        Ref: RetentionInDays
+
+  Test:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        !Sub ${ProjectName}-${Environment}-Test
+      Handler: index.Handler
+      CodeUri: ./functions/test
+      Role:
+        Fn::ImportValue:
+          Fn::Sub: ${Environment}-SSMRole
+      Layers:
+        - Ref: UtilsLayer
+      Events:
+        Post:
+          Type: HttpApi
+          Properties:
+            Path: /test
+            Method: GET
+            ApiId:
+              Ref: ServerlessRestApi
+  TestLogs:
+    Type: AWS::Logs::LogGroup
+    DependsOn:
+      - Test
+    Properties:
+      LogGroupName:
+        !Sub /aws/lambda/${ProjectName}-${Environment}-Test
+      RetentionInDays:
+        Ref: RetentionInDays

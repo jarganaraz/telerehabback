@@ -1,0 +1,74 @@
+{
+  "default": {
+    "statusCode": 500,
+    "body": {
+      "error": {
+        "code": "internal-error",
+        "message": "Hubo un error no identificado"
+      }
+    }
+  },
+  "emptyParams": {
+    "statusCode": 406,
+    "body": {
+      "error": {
+        "code": "empty-params",
+        "message": "Uno o mas parametros estan vacios"
+      }
+    }
+  },
+  "noItemFound": {
+    "statusCode": 406,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "No se encontro ningun item para los parametros ingresados"
+      }
+    }
+  },
+  "invalid-credentials": {
+    "statusCode": 403,
+    "body": {
+      "error": {
+        "code": "invalid-credentials",
+        "message": "Wrong email or password"
+      }
+    }
+  },
+  "passwordMismatch": {
+    "statusCode": 406,
+    "body": {
+      "error": {
+        "code": "password-mismatch",
+        "message": "Passwords does not match."
+      }
+    }
+  },
+  "shortPassword": {
+    "statusCode": 406,
+    "body": {
+      "error": {
+        "code": "short-password",
+        "message": "Password must have at least 8 characters"
+      }
+    }
+  },
+  "userAlreadyExists": {
+    "statusCode": 406,
+    "body": {
+      "error": {
+        "code": "user-already-exists",
+        "message": "User already exists."
+      }
+    }
+  },
+  "notFound": {
+    "statusCode": 404,
+    "body": {
+      "error": {
+        "code": "not-found",
+        "message": "Resource not found."
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "api-template-demo",
+  "version": "1.0.0",
+  "description": "NoNerds API template",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "sam.cmd build --cached",
+    "nodemon": "nodemon --exec npm run build"
+  },
+  "author": "Novarino Cristian",
+  "license": "MIT",
+  "devDependencies": {
+    "aws-sdk": "^2.962.0",
+    "aws-sdk-mock": "^5.2.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^7.32.0",
+    "ghooks": "^2.0.4",
+    "jest": "^27.0.6",
+    "nodemon": "^2.0.14"
+  },
+  "dependencies": {
+    "axios": "^0.24.0",
+    "firebase-admin": "^10.0.1",
+    "stream-chat": "^5.0.1"
+  }
+}

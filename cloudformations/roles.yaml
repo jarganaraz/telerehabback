@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Telerehab Api SAM Template Roles"
+
+Parameters:
+  Environment:
+    Type: String
+
+Resources:
+  SSMRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - "lambda.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        Path: "/"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        Policies:
+          - PolicyName: "SSMRead"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - ssm:GetParameter
+                    - ssm:GetParameters
+                  Resource:
+                    Fn::Sub: arn:aws:ssm:*:${AWS::AccountId}:parameter/${Environment}/*
+                - Effect: "Allow"
+                  Action:
+                    - secretsmanager:GetSecretValue
+                  Resource:
+                    Fn::Sub: arn:aws:secretsmanager:*:${AWS::AccountId}:secret:${Environment}/*
+          - PolicyName: "BucketAccess"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+              - Effect: "Allow"
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - '*'
+        RoleName:
+          Fn::Join: ["-", [Ref: AWS::StackName, "SSM", "Role"]]
+  AuthorizerRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service:
+                  - "apigateway.amazonaws.com"
+                  - "lambda.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        Path: "/"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaRole"
+        Policies:
+          - PolicyName: "SSMRead"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - ssm:GetParameter
+                    - ssm:GetParameters
+                  Resource:
+                    Fn::Sub: arn:aws:ssm:*:${AWS::AccountId}:parameter/${Environment}/*
+                - Effect: "Allow"
+                  Action:
+                    - secretsmanager:GetSecretValue
+                  Resource:
+                    Fn::Sub: arn:aws:secretsmanager:*:${AWS::AccountId}:secret:${Environment}/*
+        RoleName:
+          Fn::Join: ["-", [Ref: AWS::StackName, "Authorizer", "Role"]]
+
+Outputs:
+  SSMRole:
+    Description: SSM roles
+    Value:
+      Fn::GetAtt: SSMRole.Arn
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: Environment, "SSMRole"]]
+  AuthorizerRole:
+    Description: SSM roles
+    Value:
+      Fn::GetAtt: AuthorizerRole.Arn
+    Export:
+      Name:
+        Fn::Join: ["-", [Ref: Environment, "AuthorizerRole"]]

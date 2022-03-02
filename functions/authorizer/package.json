@@ -1,0 +1,11 @@
+{
+  "name": "lambda_authorizer",
+  "version": "1.0.0",
+  "description": "NoNerds Lambda Authorizer",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.482.0"
+  }
+}

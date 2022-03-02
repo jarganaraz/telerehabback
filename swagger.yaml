@@ -1,0 +1,184 @@
+openapi: 3.0.1
+info:
+  title: Telerehab ApiGateway
+  version: 1.0.0
+paths:
+  /user/login:
+    post:
+      tags:
+        - userLogin
+      operationId: userLogin
+      security:
+        - {}
+      responses:
+        200:
+          description: Operación realizada con éxito
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+          content: {}
+        500:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-amazon-apigateway-request-validator: Validate-Params
+    options:
+      tags:
+        - userLogin
+      responses:
+        '200':
+          description: 200 response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: '''POST, GET, OPTIONS'''
+              method.response.header.Access-Control-Allow-Headers: '''*'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            responseTemplates:
+              application/json: |
+                {}
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        type: mock
+  /test:
+    get:
+      tags:
+        - test
+      operationId: test
+      security:
+        - LambdaAuth: []
+      responses:
+        200:
+          description: Operación realizada con éxito
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+          content: {}
+        500:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      x-amazon-apigateway-request-validator: Validate-Params
+    options:
+      tags:
+        - test
+      responses:
+        '200':
+          description: 200 response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+          content: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Methods: '''POST, GET, OPTIONS'''
+              method.response.header.Access-Control-Allow-Headers: '''*'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            responseTemplates:
+              application/json: |
+                {}
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        type: mock
+
+components:
+  securitySchemes:
+    LambdaAuth:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: custom
+      x-amazon-apigateway-authorizer:
+        type: token
+        identityValidationExpression: ^Bearer [-0-9a-zA-Z\._]*$
+        AuthorizerResultTtlInSeconds: 0
+        identitySource: method.request.header.Authorization
+        authorizerUri:
+          Fn::Sub:
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AuthorizerFunction}/invocations
+            - AuthorizerFunction:
+                Fn::FindInMap:
+                  - Stage
+                  - Ref: Environment
+                  - LambdaAuth
+  schemas:
+    Error:
+      required:
+      - message
+      type: object
+      properties:
+        code:
+          type: number
+        message:
+          type: string
+
+x-amazon-apigateway-documentation:
+  version: 0.1
+  documentationParts:
+  - location:
+      type: API
+    properties:
+      description: SAM API
+      info:
+        description:
+          Ref: AWS::StackName
+        version: 0.1
+x-amazon-apigateway-request-validators:
+  Validate-Body:
+    validateRequestParameters: false
+    validateRequestBody: true
+  Validate-Params:
+    validateRequestParameters: true
+    validateRequestBody: false
+  Validate-All:
+    validateRequestParameters: true
+    validateRequestBody: true
